@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SuperPooper — Your Local AI Sidebar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --accent: #7fff6e;
+      --accent2: #38d4ff;
+      --accent3: #ff6ef7;
+      --text: #e8e8f0;
+      --muted: #6a6a88;
+      --border: rgba(127,255,110,0.15);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    /* Custom cursor */
+    .cursor {
+      width: 12px; height: 12px;
+      background: var(--accent);
+      border-radius: 50%;
+      position: fixed;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 9999;
+      transition: transform 0.1s ease;
+      mix-blend-mode: exclusion;
+    }
+    .cursor-ring {
+      width: 36px; height: 36px;
+      border: 1px solid var(--accent);
+      border-radius: 50%;
+      position: fixed;
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: 9998;
+      transition: transform 0.18s ease, width 0.2s, height 0.2s;
+      opacity: 0.5;
+    }
+
+    /* Noise overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0.4;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 70% 50%, rgba(56,212,255,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 20% 80%, rgba(127,255,110,0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 30% 30% at 80% 10%, rgba(255,110,247,0.05) 0%, transparent 50%);
+    }
+
+    /* Grid lines */
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(127,255,110,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(127,255,110,0.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* Sidebar mockup */
+    .hero-visual {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      padding: 80px 40px 80px 60px;
+    }
+
+    .sidebar-mockup {
+      width: 260px;
+      height: 520px;
+      background: var(--surface);
+      border-radius: 16px 0 0 16px;
+      border: 1px solid var(--border);
+      border-right: none;
+      box-shadow:
+        -20px 0 80px rgba(127,255,110,0.08),
+        0 40px 120px rgba(0,0,0,0.6);
+      overflow: hidden;
+      position: relative;
+      transform: perspective(1000px) rotateY(8deg) rotateX(2deg);
+      animation: floatMock 6s ease-in-out infinite;
+    }
+
+    @keyframes floatMock {
+      0%, 100% { transform: perspective(1000px) rotateY(8deg) rotateX(2deg) translateY(0px); }
+      50% { transform: perspective(1000px) rotateY(8deg) rotateX(2deg) translateY(-12px); }
+    }
+
+    .mock-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .mock-logo { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; color: var(--accent); }
+    .mock-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+    .mock-chat { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+
+    .mock-bubble {
+      padding: 8px 12px;
+      border-radius: 10px;
+      font-size: 10px;
+      line-height: 1.5;
+      max-width: 85%;
+    }
+    .mock-bubble.user {
+      background: rgba(127,255,110,0.12);
+      border: 1px solid rgba(127,255,110,0.2);
+      align-self: flex-end;
+      color: var(--accent);
+    }
+    .mock-bubble.ai {
+      background: var(--surface2);
+      border: 1px solid rgba(255,255,255,0.06);
+      align-self: flex-start;
+      color: var(--text);
+    }
+
+    .mock-typing {
+      display: flex; gap: 4px; align-items: center; padding: 8px 12px;
+      background: var(--surface2); border-radius: 10px; max-width: 60px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+    .mock-typing span {
+      width: 5px; height: 5px; border-radius: 50%; background: var(--accent2);
+      animation: typingDot 1.2s infinite;
+    }
+    .mock-typing span:nth-child(2) { animation-delay: 0.2s; }
+    .mock-typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingDot { 0%,80%,100%{transform:scale(1);opacity:0.4} 40%{transform:scale(1.3);opacity:1} }
+
+    .mock-input {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      padding: 10px 12px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .mock-input-field {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 9px;
+      color: var(--muted);
+      font-family: 'Space Mono', monospace;
+    }
+    .mock-send {
+      width: 26px; height: 26px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .mock-send svg { width: 12px; height: 12px; }
+
+    /* Content glowing strip on right of mockup */
+    .sidebar-glow {
+      width: 3px;
+      height: 520px;
+      background: linear-gradient(to bottom, transparent, var(--accent), var(--accent2), transparent);
+      position: absolute;
+      right: -3px;
+      top: 0;
+      filter: blur(4px);
+      animation: glowStrip 3s ease-in-out infinite;
+    }
+    @keyframes glowStrip { 0%,100%{opacity:0.6;} 50%{opacity:1;} }
+
+    /* Page content mockup to right of sidebar */
+    .page-mockup {
+      width: 200px;
+      height: 520px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 0 16px 16px 0;
+      border: 1px solid rgba(255,255,255,0.04);
+      padding: 16px;
+      position: absolute;
+      left: calc(50% + 9px);
+      transform: perspective(1000px) rotateY(8deg) rotateX(2deg) translateX(10px);
+      animation: floatPage 6s ease-in-out infinite;
+      overflow: hidden;
+    }
+    @keyframes floatPage {
+      0%,100%{transform:perspective(1000px) rotateY(8deg) rotateX(2deg) translateX(10px) translateY(0px);}
+      50%{transform:perspective(1000px) rotateY(8deg) rotateX(2deg) translateX(10px) translateY(-12px);}
+    }
+    .page-line {
+      height: 8px; border-radius: 4px;
+      background: rgba(255,255,255,0.06);
+      margin-bottom: 10px;
+    }
+    .page-line:nth-child(1){width:70%;}
+    .page-line:nth-child(2){width:90%;}
+    .page-line:nth-child(3){width:55%;}
+    .page-line:nth-child(4){width:80%; margin-top:20px;}
+    .page-line:nth-child(5){width:65%;}
+    .page-line.highlight { background: rgba(56,212,255,0.2); }
+
+    /* ── HERO TEXT ── */
+    .hero-content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 80px 60px 80px 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(127,255,110,0.08);
+      border: 1px solid rgba(127,255,110,0.25);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 11px;
+      color: var(--accent);
+      width: fit-content;
+      margin-bottom: 32px;
+      animation: fadeUp 0.6s ease both;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse 2s infinite; }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(42px, 5vw, 68px);
+      font-weight: 800;
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+      margin-bottom: 24px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    h1 .line1 { display: block; color: var(--text); }
+    h1 .line2 { display: block; color: var(--accent); }
+    h1 .line3 { display: block; color: var(--muted); font-size: 0.65em; font-weight: 600; }
+
+    .hero-desc {
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--muted);
+      max-width: 420px;
+      margin-bottom: 40px;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0a0f;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 14px 28px;
+      border-radius: 8px;
+      text-decoration: none;
+      letter-spacing: 0.02em;
+      transition: transform 0.15s, box-shadow 0.15s;
+      border: none;
+      cursor: none;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(127,255,110,0.3);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      padding: 14px 24px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      text-decoration: none;
+      transition: border-color 0.15s, color 0.15s;
+      cursor: none;
+    }
+    .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    /* ── STATS ── */
+    .stats {
+      display: flex;
+      gap: 32px;
+      margin-top: 48px;
+      padding-top: 48px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      animation: fadeUp 0.6s 0.4s ease both;
+    }
+    .stat-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .stat-val span { color: var(--accent); }
+    .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── SECTION: FEATURES ── */
+    .section {
+      padding: 120px 60px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 11px;
+      color: var(--accent);
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(32px, 3.5vw, 52px);
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .section-sub {
+      font-size: 14px;
+      color: var(--muted);
+      max-width: 500px;
+      line-height: 1.8;
+      margin-bottom: 64px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+    }
+
+    .feature-card {
+      background: var(--surface);
+      padding: 40px 32px;
+      position: relative;
+      overflow: hidden;
+      transition: background 0.2s;
+    }
+    .feature-card:hover { background: var(--surface2); }
+    .feature-card:first-child { border-radius: 16px 0 0 0; }
+    .feature-card:nth-child(3) { border-radius: 0 16px 0 0; }
+    .feature-card:nth-child(4) { border-radius: 0 0 0 16px; }
+    .feature-card:last-child { border-radius: 0 0 16px 0; }
+
+    .feature-icon {
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    .feature-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 17px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .feature-desc {
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--muted);
+    }
+
+    .feature-card::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 2px; width: 0;
+      background: linear-gradient(to right, var(--accent), var(--accent2));
+      transition: width 0.3s ease;
+    }
+    .feature-card:hover::after { width: 100%; }
+
+    /* ── HOW IT WORKS ── */
+    .how-section {
+      background: var(--surface);
+      padding: 120px 60px;
+    }
+    .how-inner { max-width: 1200px; margin: 0 auto; }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      margin-top: 64px;
+      position: relative;
+    }
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 28px; left: 12%; right: 12%;
+      height: 1px;
+      background: linear-gradient(to right, var(--accent), var(--accent2), var(--accent3));
+      opacity: 0.3;
+    }
+
+    .step { padding: 0 24px; text-align: center; }
+    .step-num {
+      width: 56px; height: 56px;
+      border-radius: 50%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--accent);
+      margin: 0 auto 24px;
+    }
+    .step-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .step-desc { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+    /* ── MODELS ── */
+    .models-section {
+      padding: 120px 60px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .models-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 40px;
+    }
+
+    .model-tag {
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 100px;
+      padding: 10px 20px;
+      font-size: 12px;
+      color: var(--text);
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .model-tag:hover { border-color: var(--accent2); color: var(--accent2); }
+    .model-tag.featured { border-color: rgba(127,255,110,0.3); color: var(--accent); background: rgba(127,255,110,0.06); }
+
+    /* ── CTA BAND ── */
+    .cta-band {
+      margin: 0 60px 120px;
+      background: linear-gradient(135deg, rgba(127,255,110,0.08), rgba(56,212,255,0.05), rgba(255,110,247,0.05));
+      border: 1px solid rgba(127,255,110,0.15);
+      border-radius: 24px;
+      padding: 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-band::before {
+      content: 'SUPERPOOPER';
+      font-family: 'Syne', sans-serif;
+      font-size: 160px;
+      font-weight: 800;
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      color: rgba(255,255,255,0.02);
+      white-space: nowrap;
+      pointer-events: none;
+      letter-spacing: -0.05em;
+    }
+    .cta-band h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(28px, 3vw, 48px);
+      font-weight: 800;
+      margin-bottom: 16px;
+      position: relative;
+    }
+    .cta-band p {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 40px;
+      position: relative;
+    }
+    .cta-band .hero-cta { justify-content: center; position: relative; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 40px 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .footer-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--accent);
+    }
+    .footer-copy { font-size: 11px; color: var(--muted); }
+    .footer-url { font-size: 11px; color: var(--muted); }
+    .footer-url a { color: var(--accent2); text-decoration: none; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 900px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .hero-content { padding: 60px 32px; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .steps { grid-template-columns: 1fr 1fr; gap: 40px; }
+      .steps::before { display: none; }
+      .section, .models-section { padding: 80px 32px; }
+      .how-section { padding: 80px 32px; }
+      .cta-band { margin: 0 32px 80px; padding: 48px 32px; }
+      footer { flex-direction: column; gap: 12px; padding: 32px; text-align: center; }
+    }
+    @media (max-width: 600px) {
+      .features-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- ── HERO ── -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+
+    <!-- Sidebar visual -->
+    <div class="hero-visual">
+      <div style="position:relative; width:460px; height:520px;">
+        <!-- Page behind -->
+        <div class="page-mockup">
+          <div class="page-line"></div>
+          <div class="page-line"></div>
+          <div class="page-line"></div>
+          <div class="page-line highlight"></div>
+          <div class="page-line"></div>
+          <div class="page-line" style="width:45%;margin-top:20px;"></div>
+          <div class="page-line" style="width:75%;"></div>
+          <div class="page-line" style="width:55%;"></div>
+          <div class="page-line highlight" style="width:80%;margin-top:20px;"></div>
+          <div class="page-line" style="width:60%;"></div>
+        </div>
+
+        <div class="sidebar-mockup">
+          <div class="mock-header">
+            <div class="mock-dot"></div>
+            <div class="mock-logo">SuperPooper</div>
+          </div>
+          <div class="mock-chat">
+            <div class="mock-bubble ai">Hey! How can I help you today?</div>
+            <div class="mock-bubble user">Summarize this page for me</div>
+            <div class="mock-bubble ai">Sure! This page covers quarterly revenue trends with a 23% YoY growth...</div>
+            <div class="mock-bubble user">What are the key risks?</div>
+            <div class="mock-typing">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+          <div class="mock-input">
+            <div class="mock-input-field">Ask anything...</div>
+            <div class="mock-send">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M22 2L11 13" stroke="#0a0a0f" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="#0a0a0f" stroke-width="2.5" stroke-linejoin="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="sidebar-glow"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hero text -->
+    <div class="hero-content">
+      <div class="badge">
+        <div class="badge-dot"></div>
+        Local AI · No cloud · No tracking
+      </div>
+
+      <h1>
+        <span class="line1">Your AI lives</span>
+        <span class="line2">in the sidebar.</span>
+        <span class="line3">Not in someone's server farm.</span>
+      </h1>
+
+      <p class="hero-desc">
+        SuperPooper pins a powerful local AI right to the edge of your screen.
+        Ask questions, summarize pages, write faster — all completely offline.
+        Your data never leaves your machine.
+      </p>
+
+      <div class="hero-cta">
+        <a href="#download" class="btn-primary">Get Started →</a>
+        <a href="#features" class="btn-secondary">See how it works</a>
+      </div>
+
+      <div class="stats">
+        <div>
+          <div class="stat-val">0<span>ms</span></div>
+          <div class="stat-label">Server latency</div>
+        </div>
+        <div>
+          <div class="stat-val">100<span>%</span></div>
+          <div class="stat-label">Offline capable</div>
+        </div>
+        <div>
+          <div class="stat-val">0<span>¢</span></div>
+          <div class="stat-label">API costs</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FEATURES ── -->
+  <section class="section" id="features">
+    <div class="section-label">// Features</div>
+    <h2 class="section-title">AI that lives<br>on your terms.</h2>
+    <p class="section-sub">No subscriptions. No sending your text to strangers. Just raw local model power, docked right where you need it.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-title">Fully Private</div>
+        <div class="feature-desc">Every query stays on your device. No telemetry, no logs, no third-party API calls. Your conversations are yours alone.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">Instant Sidebar</div>
+        <div class="feature-desc">Summon the AI panel with a hotkey. It snaps to the edge of your screen without interrupting your workflow.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📄</div>
+        <div class="feature-title">Page Awareness</div>
+        <div class="feature-desc">SuperPooper reads the page you're on and uses it as context. Summarize, explain, translate — all in one click.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">Bring Your Model</div>
+        <div class="feature-desc">Drop in any GGUF model. Mistral, Llama, Phi — you pick the brain, SuperPooper handles the interface.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✍️</div>
+        <div class="feature-title">Write Anywhere</div>
+        <div class="feature-desc">Click any input field on any page and let SuperPooper fill it. Emails, forms, docs — assisted at the cursor.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <div class="feature-title">Works Offline</div>
+        <div class="feature-desc">On a plane, in a bunker, in a café with terrible Wi-Fi? Doesn't matter. SuperPooper runs without internet.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HOW IT WORKS ── -->
+  <div class="how-section" id="how">
+    <div class="how-inner">
+      <div class="section-label">// Setup</div>
+      <h2 class="section-title">Three minutes.<br>One local AI.</h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-title">Install Ollama</div>
+          <div class="step-desc">Download and install Ollama. It powers the local AI model that SuperPooper uses.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-title">Download SuperPooper</div>
+          <div class="step-desc">Grab the latest Windows build and extract it anywhere on your computer.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-title">Run setup.bat</div>
+          <div class="step-desc">Open the folder and run setup.bat. It installs everything SuperPooper needs automatically.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div class="step-title">Launch SuperPooper</div>
+          <div class="step-desc">Start the app and begin chatting with your local AI.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODELS ── -->
+  <section class="models-section">
+    <div class="section-label">// Compatible Models</div>
+    <h2 class="section-title">Works with every<br>GGUF model out there.</h2>
+    <p class="section-sub" style="margin-bottom:0;">SuperPooper is model-agnostic. As long as it's GGUF, it runs. Here are some popular choices:</p>
+
+    <div class="models-list">
+      <div class="model-tag featured">Llama 3.1 8B ★</div>
+      <div class="model-tag featured">Mistral 7B ★</div>
+      <div class="model-tag">Phi-3 Mini</div>
+      <div class="model-tag">Gemma 2 9B</div>
+      <div class="model-tag">Qwen 2.5 7B</div>
+      <div class="model-tag">DeepSeek-R1 8B</div>
+      <div class="model-tag">CodeLlama 13B</div>
+      <div class="model-tag">Orca 2 13B</div>
+      <div class="model-tag">Neural Chat 7B</div>
+      <div class="model-tag">OpenHermes 2.5</div>
+      <div class="model-tag">+ any GGUF model</div>
+    </div>
+  </section>
+
+  <!-- ── CTA ── -->
+  <div class="cta-band" id="download">
+    <h2>Ready to keep your AI<br>close and your data closer?</h2>
+    <p>Free download. No account. No cloud. Just your machine and its new brain.</p>
+    <div class="hero-cta" style="justify-content:center;">
+      <a href="https://github.com/JonathanDonkerlot/Superpooper/releases/download/1.0.0/Superpooper.zip" class="btn-primary">
+  Download for Windows
+</a>
+    </div>
+
+    <div style="max-width:700px;margin:40px auto 0;text-align:left;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;">
+      <h3 style="margin-bottom:20px;color:var(--accent);">Quick Setup</h3>
+      <ol style="line-height:2;color:var(--text);padding-left:20px;">
+        <li>
+  Install
+  <a href="https://ollama.com/download" target="_blank" style="color:var(--accent);font-weight:700;">Ollama ↗</a>
+  and
+  <a href="https://www.python.org/downloads/" target="_blank" style="color:var(--accent2);font-weight:700;">Python ↗</a>
+</li>
+        <li>Download SuperPooper</li>
+        <li>Open the folder and run <strong>setup.bat</strong></li>
+        <li>Launch SuperPooper</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer>
+    <div class="footer-logo">SuperPooper</div>
+    <div class="footer-copy">© 2026 SuperPooper · All models run locally · Zero telemetry</div>
+    <div class="footer-url">
+      <a href="https://superpooper.win/main">superpooper.win/main</a>
+    </div>
+  </footer>
+
+  <script>
+    // Cursor
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      cursor.style.transform = `translate(${mx - 6}px, ${my - 6}px)`;
+    });
+
+    function animRing() {
+      rx += (mx - rx - 18) * 0.12;
+      ry += (my - ry - 18) * 0.12;
+      ring.style.transform = `translate(${rx}px, ${ry}px)`;
+      requestAnimationFrame(animRing);
+    }
+    animRing();
+
+    // Scroll fade-in
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.style.opacity = '1';
+          e.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.feature-card, .step, .model-tag').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>
