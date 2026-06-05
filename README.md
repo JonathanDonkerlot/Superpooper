@@ -6,6 +6,6 @@
   <img src="https://img.shields.io/badge/Status-Open%20For%20Discussions-ff6ef7?style=for-the-badge">
 </p>
 
-Local AI sidebar powered by Ollama.
+Only local apps that require no internet.
 Runs entirely on your machine.
 No cloud. No subscriptions.
