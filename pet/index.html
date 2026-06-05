@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Desktop Pet — Superpooper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1a1a26;
+      --accent: #7fff6e;
+      --accent2: #38d4ff;
+      --accent3: #ff6ef7;
+      --text: #e8e8f0;
+      --muted: #6a6a88;
+      --border: rgba(127,255,110,0.15);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      overflow-x: hidden;
+      cursor: none;
+    }
+
+    .cursor {
+      width: 12px; height: 12px;
+      background: var(--accent); border-radius: 50%;
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; z-index: 9999;
+      transition: transform 0.1s ease;
+      mix-blend-mode: exclusion;
+    }
+    .cursor-ring {
+      width: 36px; height: 36px;
+      border: 1px solid var(--accent); border-radius: 50%;
+      position: fixed; top: 0; left: 0;
+      pointer-events: none; z-index: 9998;
+      transition: transform 0.18s ease;
+      opacity: 0.5;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 100; opacity: 0.4;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+      padding: 20px 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(10,10,15,0.8); backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+    .nav-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--accent); text-decoration: none; cursor: none; }
+    .nav-back {
+      font-size: 11px; color: var(--muted); text-decoration: none;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      transition: color 0.2s; cursor: none;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .nav-back:hover { color: var(--accent); }
+
+    /* HERO */
+    .hero {
+      min-height: 100vh;
+      display: grid; grid-template-columns: 1fr 1fr;
+      position: relative; overflow: hidden;
+    }
+    .hero-bg {
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 70% 50%, rgba(255,110,247,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 20% 80%, rgba(127,255,110,0.05) 0%, transparent 60%),
+        radial-gradient(ellipse 30% 30% at 80% 10%, rgba(56,212,255,0.05) 0%, transparent 50%);
+    }
+    .hero-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(127,255,110,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(127,255,110,0.03) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+
+    /* Pet visual */
+    .hero-visual {
+      display: flex; align-items: center; justify-content: center;
+      position: relative; padding: 80px 40px 80px 60px;
+    }
+    .desktop-mockup {
+      width: 380px; height: 280px;
+      background: var(--surface);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 40px 120px rgba(0,0,0,0.6);
+      position: relative; overflow: hidden;
+      animation: floatDesk 6s ease-in-out infinite;
+    }
+    @keyframes floatDesk {
+      0%,100%{ transform: perspective(1000px) rotateY(-6deg) rotateX(2deg) translateY(0); }
+      50%{ transform: perspective(1000px) rotateY(-6deg) rotateX(2deg) translateY(-10px); }
+    }
+    .desktop-bar {
+      background: var(--surface2); height: 28px;
+      display: flex; align-items: center; gap: 6px; padding: 0 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .desktop-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .desktop-dot:nth-child(1){ background: #ff5f57; }
+    .desktop-dot:nth-child(2){ background: #febc2e; }
+    .desktop-dot:nth-child(3){ background: #28c840; }
+    .desktop-body {
+      position: relative; width: 100%; height: calc(100% - 28px);
+      background: linear-gradient(135deg, #0d0d18 0%, #12121f 100%);
+      overflow: hidden;
+    }
+    /* Fake desktop icons */
+    .desk-icon {
+      position: absolute; text-align: center; font-size: 10px;
+      color: rgba(255,255,255,0.3);
+    }
+    .desk-icon span { font-size: 20px; display: block; margin-bottom: 4px; }
+    /* Pet character that follows cursor in mockup */
+    .pet-char {
+      position: absolute;
+      font-size: 40px;
+      animation: petWander 8s ease-in-out infinite;
+      filter: drop-shadow(0 4px 12px rgba(127,255,110,0.3));
+    }
+    @keyframes petWander {
+      0%  { transform: translate(40px, 80px); }
+      25% { transform: translate(180px, 40px); }
+      50% { transform: translate(280px, 120px); }
+      75% { transform: translate(100px, 160px); }
+      100%{ transform: translate(40px, 80px); }
+    }
+    .pet-trail {
+      position: absolute; width: 6px; height: 6px;
+      border-radius: 50%; background: var(--accent);
+      opacity: 0.3; animation: trailFade 8s ease-in-out infinite;
+    }
+    @keyframes trailFade {
+      0%  { transform: translate(44px, 84px); opacity: 0.4; }
+      25% { transform: translate(184px, 44px); opacity: 0.2; }
+      50% { transform: translate(284px, 124px); opacity: 0.4; }
+      75% { transform: translate(104px, 164px); opacity: 0.2; }
+      100%{ transform: translate(44px, 84px); opacity: 0.4; }
+    }
+
+    /* HERO TEXT */
+    .hero-content {
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 80px 60px 80px 40px; position: relative; z-index: 1;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,110,247,0.08);
+      border: 1px solid rgba(255,110,247,0.25);
+      border-radius: 100px; padding: 6px 14px;
+      font-size: 11px; color: var(--accent3);
+      width: fit-content; margin-bottom: 32px;
+      animation: fadeUp 0.6s ease both;
+    }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent3); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(42px, 5vw, 68px);
+      font-weight: 800; line-height: 1.0;
+      letter-spacing: -0.03em; margin-bottom: 24px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    h1 .line1 { display: block; color: var(--text); }
+    h1 .line2 { display: block; color: var(--accent3); }
+    h1 .line3 { display: block; color: var(--muted); font-size: 0.55em; font-weight: 600; }
+
+    .hero-desc {
+      font-size: 14px; line-height: 1.8; color: var(--muted);
+      max-width: 420px; margin-bottom: 40px;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .hero-cta {
+      display: flex; gap: 14px; flex-wrap: wrap;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+    .btn-primary {
+      background: var(--accent); color: #0a0a0f;
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px;
+      padding: 14px 28px; border-radius: 8px; text-decoration: none;
+      transition: transform 0.15s, box-shadow 0.15s; cursor: none;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(127,255,110,0.3); }
+    .btn-secondary {
+      background: transparent; color: var(--text);
+      font-family: 'Space Mono', monospace; font-size: 12px;
+      padding: 14px 24px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12); text-decoration: none;
+      transition: border-color 0.15s, color 0.15s; cursor: none;
+    }
+    .btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── IMPORTANT NOTICE ── */
+    .notice-section {
+      padding: 0 60px 0;
+      max-width: 1200px; margin: 80px auto 0;
+    }
+    .notice-box {
+      background: rgba(255,110,247,0.06);
+      border: 2px solid rgba(255,110,247,0.4);
+      border-radius: 16px; padding: 36px 40px;
+      display: flex; align-items: flex-start; gap: 20px;
+      position: relative; overflow: hidden;
+    }
+    .notice-box::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,110,247,0.04), transparent);
+      pointer-events: none;
+    }
+    .notice-icon { font-size: 36px; flex-shrink: 0; margin-top: 2px; }
+    .notice-content { position: relative; }
+    .notice-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px; font-weight: 800;
+      color: var(--accent3); margin-bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .notice-title .blink {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--accent3);
+      animation: pulse 1s infinite;
+    }
+    .notice-text {
+      font-size: 13px; line-height: 1.9; color: var(--text);
+    }
+    .notice-text .highlight {
+      background: rgba(255,110,247,0.15);
+      border: 1px solid rgba(255,110,247,0.3);
+      border-radius: 6px; padding: 2px 10px;
+      color: var(--accent3);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px; font-weight: 700;
+    }
+    .notice-text .highlight-green {
+      background: rgba(127,255,110,0.1);
+      border: 1px solid rgba(127,255,110,0.25);
+      border-radius: 6px; padding: 2px 10px;
+      color: var(--accent);
+      font-family: 'Space Mono', monospace;
+      font-size: 13px;
+    }
+
+    /* SECTION */
+    .section { padding: 100px 60px; max-width: 1200px; margin: 0 auto; }
+    .section-label {
+      font-size: 11px; color: var(--accent);
+      letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 16px;
+    }
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(28px, 3vw, 44px);
+      font-weight: 800; line-height: 1.1; margin-bottom: 16px;
+    }
+    .section-sub {
+      font-size: 14px; color: var(--muted);
+      max-width: 500px; line-height: 1.8; margin-bottom: 56px;
+    }
+
+    /* FEATURES */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px;
+    }
+    .feature-card {
+      background: var(--surface); padding: 40px 32px;
+      position: relative; overflow: hidden; transition: background 0.2s;
+    }
+    .feature-card:hover { background: var(--surface2); }
+    .feature-card:first-child { border-radius: 16px 0 0 0; }
+    .feature-card:nth-child(3) { border-radius: 0 16px 0 0; }
+    .feature-card:nth-child(4) { border-radius: 0 0 0 16px; }
+    .feature-card:last-child { border-radius: 0 0 16px 0; }
+    .feature-card::after {
+      content: ''; position: absolute; bottom: 0; left: 0;
+      height: 2px; width: 0;
+      background: linear-gradient(to right, var(--accent3), var(--accent2));
+      transition: width 0.3s ease;
+    }
+    .feature-card:hover::after { width: 100%; }
+    .feature-icon { font-size: 28px; margin-bottom: 20px; }
+    .feature-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; margin-bottom: 10px; color: var(--text); }
+    .feature-desc { font-size: 12px; line-height: 1.8; color: var(--muted); }
+
+    /* SETUP */
+    .how-section { background: var(--surface); padding: 100px 60px; }
+    .how-inner { max-width: 1200px; margin: 0 auto; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin-top: 64px; position: relative; }
+    .steps::before {
+      content: ''; position: absolute; top: 28px; left: 12%; right: 12%;
+      height: 1px;
+      background: linear-gradient(to right, var(--accent3), var(--accent2), var(--accent));
+      opacity: 0.3;
+    }
+    .step { padding: 0 24px; text-align: center; }
+    .step-num {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--bg); border: 1px solid rgba(255,110,247,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px;
+      color: var(--accent3); margin: 0 auto 24px;
+    }
+    .step-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .step-desc { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+    /* CUSTOMISE */
+    .config-section { padding: 100px 60px; max-width: 1200px; margin: 0 auto; }
+    .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 48px; }
+    .config-card {
+      background: var(--surface); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px; padding: 32px;
+    }
+    .config-name {
+      font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+      color: var(--accent3); margin-bottom: 8px;
+    }
+    .config-code {
+      background: var(--surface2); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 8px; padding: 10px 16px;
+      font-size: 12px; color: var(--accent2);
+      font-family: 'Space Mono', monospace; margin-bottom: 10px;
+    }
+    .config-desc { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+    /* CTA */
+    .cta-band {
+      margin: 0 60px 100px;
+      background: linear-gradient(135deg, rgba(255,110,247,0.07), rgba(56,212,255,0.05), rgba(127,255,110,0.04));
+      border: 1px solid rgba(255,110,247,0.2);
+      border-radius: 24px; padding: 80px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-band::before {
+      content: 'DESKTOP PET';
+      font-family: 'Syne', sans-serif; font-size: 120px; font-weight: 800;
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      color: rgba(255,255,255,0.02); white-space: nowrap; pointer-events: none;
+    }
+    .cta-band h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(24px, 3vw, 44px); font-weight: 800; margin-bottom: 16px; position: relative;
+    }
+    .cta-band p { font-size: 14px; color: var(--muted); margin-bottom: 40px; position: relative; }
+    .cta-band .hero-cta { justify-content: center; position: relative; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 40px 60px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .footer-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--accent); }
+    .footer-copy { font-size: 11px; color: var(--muted); }
+    .footer-url a { color: var(--accent2); text-decoration: none; font-size: 11px; }
+
+    /* RESPONSIVE */
+    @media (max-width: 900px) {
+      nav { padding: 16px 24px; }
+      .hero { grid-template-columns: 1fr; }
+      .hero-visual { display: none; }
+      .hero-content { padding: 60px 32px; }
+      .notice-section { padding: 0 32px; margin-top: 60px; }
+      .notice-box { flex-direction: column; padding: 28px 24px; }
+      .section, .config-section { padding: 80px 32px; }
+      .how-section { padding: 80px 32px; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .steps { grid-template-columns: 1fr 1fr; gap: 40px; }
+      .steps::before { display: none; }
+      .config-grid { grid-template-columns: 1fr; }
+      .cta-band { margin: 0 32px 80px; padding: 48px 32px; }
+      footer { flex-direction: column; gap: 12px; padding: 32px; text-align: center; }
+    }
+    @media (max-width: 600px) {
+      .features-grid { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cursor" id="cursor"></div>
+  <div class="cursor-ring" id="cursorRing"></div>
+
+  <!-- NAV -->
+  <nav>
+    <a href="/" class="nav-logo">Superpooper</a>
+    <a href="/" class="nav-back">← Back to portfolio</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-grid"></div>
+
+    <div class="hero-visual">
+      <div style="position:relative;">
+        <div class="desktop-mockup">
+          <div class="desktop-bar">
+            <div class="desktop-dot"></div>
+            <div class="desktop-dot"></div>
+            <div class="desktop-dot"></div>
+          </div>
+          <div class="desktop-body">
+            <div class="desk-icon" style="top:20px;left:20px;"><span>📁</span>Files</div>
+            <div class="desk-icon" style="top:20px;left:70px;"><span>🌐</span>Browser</div>
+            <div class="pet-trail"></div>
+            <div class="pet-char">🐱</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-content">
+      <div class="badge">
+        <div class="badge-dot"></div>
+        Free · Open Source · Windows
+      </div>
+      <h1>
+        <span class="line1">Your desktop,</span>
+        <span class="line2">but with a pet.</span>
+        <span class="line3">// any image. any character. your rules.</span>
+      </h1>
+      <p class="hero-desc">
+        Drop any JPEG on your desktop and watch it come alive.
+        Your pet lazily follows your mouse wherever you go —
+        always there, never in the way.
+      </p>
+      <div class="hero-cta">
+        <!-- LINE TO UPDATE: change href="#" to your actual download link -->
+        <a href="https://github.com/JonathanDonkerlot/Superpooper/releases/download/pet/pet.exe" class="btn-primary">Download for Windows →</a>
+        <!-- LINE TO UPDATE: change href="#" to your GitHub repo link -->
+        <a href="https://github.com/JonathanDonkerlot/Superpooper/releases/tag/pet" class="btn-secondary">View on GitHub</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMPORTANT NOTICE -->
+  <div class="notice-section">
+    <div class="notice-box">
+      <div class="notice-icon">⚠️</div>
+      <div class="notice-content">
+        <div class="notice-title">
+          <div class="blink"></div>
+          Important — Read before running
+        </div>
+        <div class="notice-text">
+          Desktop Pet needs an image file to use as your pet character.
+          You must provide your own image and it <strong>must be named exactly</strong>
+          <span class="highlight">ct.jpeg</span> — the app won't start without it.<br><br>
+          Place your <span class="highlight">ct.jpeg</span> file in the
+          <strong>same folder</strong> as <span class="highlight-green">pet.exe</span> before launching.
+          Any jpeg image works — a photo, a drawing, a cartoon character, anything you like.
+          Transparent backgrounds look best.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <div class="section-label">// Features</div>
+    <h2 class="section-title">A companion that<br>actually follows you.</h2>
+    <p class="section-sub">No setup wizard, no accounts, no cloud. Just a little friend that wanders around your screen.</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🖼️</div>
+        <div class="feature-title">Any Image</div>
+        <div class="feature-desc">Use any JPEG as your pet. A cat, a dog, your face, a logo — if it's a JPEG it works. Transparent backgrounds are supported.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🐾</div>
+        <div class="feature-title">Smooth Follow</div>
+        <div class="feature-desc">Your pet lazily trails your cursor with smooth interpolation. Adjust the speed from sleepy crawl to hyperactive dash.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📐</div>
+        <div class="feature-title">Resize Freely</div>
+        <div class="feature-desc">Make your pet tiny and subtle or absolutely massive. One config line controls the size.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🪟</div>
+        <div class="feature-title">Always on Top</div>
+        <div class="feature-desc">Your pet floats above all other windows so it's always visible no matter what you're doing.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">❌</div>
+        <div class="feature-title">Right Click to Close</div>
+        <div class="feature-desc">Right click your pet at any time to close the app. Simple and clean, no taskbar clutter.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">Lightweight</div>
+        <div class="feature-desc">Uses almost no CPU or RAM. Runs quietly in the background without affecting your other work.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETUP -->
+  <div class="how-section" id="setup">
+    <div class="how-inner">
+      <div class="section-label">// Setup</div>
+      <h2 class="section-title">Up and running<br>in two minutes.</h2>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-title">Download</div>
+          <div class="step-desc">Grab the zip from the button above and extract it anywhere on your PC.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-title">Add your image</div>
+          <div class="step-desc">Put your chosen JPEG image in the same folder as pet.exe and rename it to <strong>ct.jpeg</strong>.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-title">Run pet.exe</div>
+          <div class="step-desc">Double click pet.exe. Your pet appears on screen immediately and starts following your mouse.</div>
+        </div>
+        <div class="step">
+          <div class="step-num">04</div>
+          <div class="step-title">Enjoy</div>
+          <div class="step-desc">Your new companion is alive. Right click it any time to close.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOMISE -->
+  <section class="config-section">
+    <div class="section-label">// Customise</div>
+    <h2 class="section-title">Make it yours.</h2>
+    <p class="section-sub">Open pet.py in any text editor and tweak these four values at the top of the file.</p>
+    <div class="config-grid">
+      <div class="config-card">
+        <div class="config-name">PET_SIZE</div>
+        <div class="config-code">PET_SIZE = 100</div>
+        <div class="config-desc">How big your pet is in pixels. Try 60 for tiny or 200 for enormous.</div>
+      </div>
+      <div class="config-card">
+        <div class="config-name">SPEED</div>
+        <div class="config-code">SPEED = 0.05</div>
+        <div class="config-desc">How fast it follows your cursor. 0.02 is sleepy, 0.15 is snappy, 1.0 is instant.</div>
+      </div>
+      <div class="config-card">
+        <div class="config-name">OFFSET_X / OFFSET_Y</div>
+        <div class="config-code">OFFSET_X = 20<br>OFFSET_Y = 20</div>
+        <div class="config-desc">How far from your cursor the pet sits. Negative values put it above or to the left.</div>
+      </div>
+      <div class="config-card">
+        <div class="config-name">IMAGE_PATH</div>
+        <div class="config-code">IMAGE_PATH = "ct.jpeg"</div>
+        <div class="config-desc">The filename of your pet image. Must be in the same folder. Must be a JPEG.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-band" id="download">
+    <h2>Ready to add a little<br>life to your desktop?</h2>
+    <p>Free download. No install. No account. Just you, your image, and your new pet.</p>
+    <div class="hero-cta">
+      <!-- LINE TO UPDATE: change href="#" to your actual download link -->
+      <a href="https://github.com/JonathanDonkerlot/Superpooper/releases/download/pet/pet.exe" class="btn-primary">Download for Windows →</a>
+      <!-- LINE TO UPDATE: change href="#" to your GitHub repo link -->
+      <a href="https://github.com/JonathanDonkerlot/Superpooper/releases/tag/pet" class="btn-secondary">View on GitHub</a>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">Superpooper</div>
+    <div class="footer-copy">© 2026 Superpooper · Desktop Pet · Free & Open Source</div>
+    <div><a href="https://superpooper.win" class="footer-url">superpooper.win →</a></div>
+  </footer>
+
+  <script>
+    const cursor = document.getElementById('cursor');
+    const ring = document.getElementById('cursorRing');
+    let mx = 0, my = 0, rx = 0, ry = 0;
+
+    document.addEventListener('mousemove', e => {
+      mx = e.clientX; my = e.clientY;
+      cursor.style.transform = `translate(${mx - 6}px, ${my - 6}px)`;
+    });
+
+    function animRing() {
+      rx += (mx - rx - 18) * 0.12;
+      ry += (my - ry - 18) * 0.12;
+      ring.style.transform = `translate(${rx}px, ${ry}px)`;
+      requestAnimationFrame(animRing);
+    }
+    animRing();
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.style.opacity = '1';
+          e.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.feature-card, .step, .config-card').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>
